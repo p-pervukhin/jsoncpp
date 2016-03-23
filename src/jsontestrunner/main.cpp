@@ -25,14 +25,13 @@ struct Options
 };
 
 static JSONCPP_STRING normalizeFloatingPointStr(double value) {
-  char buffer[32];
-#if defined(_MSC_VER) && defined(__STDC_SECURE_LIB__)
-  sprintf_s(buffer, sizeof(buffer), "%.16g", value);
-#else
-  snprintf(buffer, sizeof(buffer), "%.16g", value);
-#endif
-  buffer[sizeof(buffer) - 1] = 0;
-  JSONCPP_STRING s(buffer);
+  JSONCPP_OSTRINGSTREAM str;
+  // Use stringstream with "C" locale so we always use "." as decimal point.
+  str.imbue(std::locale::classic());
+  str.precision(17);
+  str << value;
+  
+  JSONCPP_STRING s = str.str();
   JSONCPP_STRING::size_type index = s.find_last_of("eE");
   if (index != JSONCPP_STRING::npos) {
     JSONCPP_STRING::size_type hasSign =

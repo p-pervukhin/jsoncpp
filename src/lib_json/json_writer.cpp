@@ -136,33 +136,23 @@ JSONCPP_STRING valueToString(UInt value) {
 #endif // # if defined(JSON_HAS_INT64)
 
 JSONCPP_STRING valueToString(double value, bool useSpecialFloats, unsigned int precision) {
-  // Allocate a buffer that is more than large enough to store the 16 digits of
-  // precision requested below.
-  char buffer[32];
-  int len = -1;
-
-  char formatString[6];
-  sprintf(formatString, "%%.%dg", precision);
-
-  // Print into the buffer. We need not request the alternative representation
-  // that always has a decimal point because JSON doesn't distingish the
-  // concepts of reals and integers.
   if (isfinite(value)) {
-    len = snprintf(buffer, sizeof(buffer), formatString, value);
+    JSONCPP_OSTRINGSTREAM str;
+    // Use stringstream with "C" locale so we always use "." as decimal point.
+    str.imbue(std::locale::classic());
+    str.precision(precision);
+    str << value;
+    return str.str();
   } else {
     // IEEE standard states that NaN values will not compare to themselves
     if (value != value) {
-      len = snprintf(buffer, sizeof(buffer), useSpecialFloats ? "NaN" : "null");
+      return useSpecialFloats ? "NaN" : "null";
     } else if (value < 0) {
-      len = snprintf(buffer, sizeof(buffer), useSpecialFloats ? "-Infinity" : "-1e+9999");
+      return useSpecialFloats ? "-Infinity" : "-1e+9999";
     } else {
-      len = snprintf(buffer, sizeof(buffer), useSpecialFloats ? "Infinity" : "1e+9999");
+      return useSpecialFloats ? "Infinity" : "1e+9999";
     }
-    // For those, we do not need to call fixNumLoc, but it is fast.
   }
-  assert(len >= 0);
-  fixNumericLocale(buffer, buffer + len);
-  return buffer;
 }
 
 JSONCPP_STRING valueToString(double value) { return valueToString(value, false, 17); }

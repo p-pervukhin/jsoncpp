@@ -619,6 +619,10 @@ bool Reader::decodeDouble(Token& token, Value& decoded) {
   double value = 0;
   JSONCPP_STRING buffer(token.start_, token.end_);
   JSONCPP_ISTRINGSTREAM is(buffer);
+
+  // Use stringstream with "C" locale so we always use "." as decimal point.
+  is.imbue(std::locale::classic());
+
   if (!(is >> value))
     return addError("'" + JSONCPP_STRING(token.start_, token.end_) +
                         "' is not a number.",
@@ -1598,34 +1602,13 @@ bool OurReader::decodeDouble(Token& token) {
 
 bool OurReader::decodeDouble(Token& token, Value& decoded) {
   double value = 0;
-  const int bufferSize = 32;
-  int count;
-  ptrdiff_t const length = token.end_ - token.start_;
+  JSONCPP_STRING buffer(token.start_, token.end_);
+  JSONCPP_ISTRINGSTREAM is(buffer);
 
-  // Sanity check to avoid buffer overflow exploits.
-  if (length < 0) {
-    return addError("Unable to parse token length", token);
-  }
-  size_t const ulength = static_cast<size_t>(length);
+  // Use stringstream with "C" locale so we always use "." as decimal point.
+  is.imbue(std::locale::classic());
 
-  // Avoid using a string constant for the format control string given to
-  // sscanf, as this can cause hard to debug crashes on OS X. See here for more
-  // info:
-  //
-  //     http://developer.apple.com/library/mac/#DOCUMENTATION/DeveloperTools/gcc-4.0.1/gcc/Incompatibilities.html
-  char format[] = "%lf";
-
-  if (length <= bufferSize) {
-    Char buffer[bufferSize + 1];
-    memcpy(buffer, token.start_, ulength);
-    buffer[length] = 0;
-    count = sscanf(buffer, format, &value);
-  } else {
-    JSONCPP_STRING buffer(token.start_, token.end_);
-    count = sscanf(buffer.c_str(), format, &value);
-  }
-
-  if (count != 1)
+  if (!(is >> value))
     return addError("'" + JSONCPP_STRING(token.start_, token.end_) +
                         "' is not a number.",
                     token);
